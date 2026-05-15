@@ -1,0 +1,2 @@
+_id,name,code,department,semester,type,regulation,credits,marks,syllabus,status,version,outcomes,createdAt,updatedAt,__v,faculty
+"69edcdd538c35e4c23c5efe0","operating system","23CSEBE602","Computer Science","6","Theory","2023","[object Object]","[object Object]","[object Object],[object Object]","active","1","","2026-04-26T08:33:25.052Z","2026-04-26T08:33:51.102Z","0","69ecedcc9444f02f766bead8"
