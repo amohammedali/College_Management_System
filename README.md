@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # 🎓 EduCMS: Institutional Management Excellence
 
 **EduCMS** is a high-fidelity, enterprise-grade College Management System designed to bridge the gap between administrative complexity and operational intelligence. Built on a "Clean Slate" philosophy, it empowers modern institutions to build their digital infrastructure from the ground up with precision and style.
@@ -76,3 +77,6 @@ EduCMS is not just a database; it is a strategic command center for academic ins
 
 ---
 *Built with ❤️ by the EduCMS Development Team for the future of Academic Administration.*
+=======
+# College_Management_System
+>>>>>>> 032660ec66eacaae0bce29919be106e1c804372e
