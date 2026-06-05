@@ -5,7 +5,7 @@ import { useQuery, useMutation } from '@tanstack/react-query';
 import axios from 'axios';
 import { 
   Package, Activity, QrCode, HardDrive, 
-  Search, Filter, Plus, Download, Tool, 
+  Search, Filter, Plus, Download, Wrench, 
   AlertTriangle, CheckCircle2, History 
 } from 'lucide-react';
 
@@ -65,7 +65,7 @@ const AdminAssets = () => {
          <div className="col-span-12 lg:col-span-4 dash-card p-8 bg-white border-amber-100 flex flex-col justify-between">
             <div className="flex justify-between items-start mb-6">
                <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Quick Actions</h3>
-               <div className="p-2 bg-amber-50 text-amber-600 rounded-lg"><Tool size={16}/></div>
+               <div className="p-2 bg-amber-50 text-amber-600 rounded-lg"><Wrench size={16}/></div>
             </div>
             <div className="space-y-3">
                <button className="w-full py-4 bg-slate-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-amber-500 transition-all shadow-lg">
