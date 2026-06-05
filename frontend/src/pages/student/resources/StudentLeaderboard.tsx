@@ -8,7 +8,18 @@ import {
 } from 'lucide-react';
 
 const StudentLeaderboard = () => {
-  const [topPerformers] = useState([]);
+  const [topPerformers] = useState([
+    { rank: 1, name: 'Cipher Sphinx', dept: 'CSE', gpa: '9.92', points: '14,250' },
+    { rank: 2, name: 'Neon Architect', dept: 'ARCH', gpa: '9.88', points: '13,900' },
+    { rank: 3, name: 'Quantum Pulse', dept: 'ECE', gpa: '9.81', points: '13,100' },
+    { rank: 4, name: 'Shadow Matrix', dept: 'IT', gpa: '9.75', points: '12,840' },
+    { rank: 5, name: 'Aero Vanguard', dept: 'MECH', gpa: '9.68', points: '12,500' },
+    { rank: 6, name: 'Data Wraith', dept: 'CSE', gpa: '9.62', points: '11,920' },
+    { rank: 7, name: 'Nova Forge', dept: 'EEE', gpa: '9.55', points: '11,400' },
+    { rank: 8, name: 'Crimson Logic', dept: 'ECE', gpa: '9.48', points: '10,850' },
+    { rank: 9, name: 'Stellar Code', dept: 'IT', gpa: '9.42', points: '10,200' },
+    { rank: 10, name: 'Iron Catalyst', dept: 'CIVIL', gpa: '9.35', points: '9,850' }
+  ]);
 
   return (
     <DashboardLayout title="Academic Leaderboard" subtitle="Gamified Academic Performance Tracking: Anonymous Peer Ranking and Institutional Achievements">

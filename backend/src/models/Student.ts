@@ -43,7 +43,7 @@ export interface IStudent extends Document {
     linkedInProfile?: string;
     githubProfile?: string;
     resumeLink?: string;
-    placementEligibilityStatus?: boolean;
+    placementStatus?: string;
   };
   
   // Academic Performance
@@ -55,6 +55,7 @@ export interface IStudent extends Document {
     currentCGPA?: number;
     arrearHistory?: number;
     activeBacklogs?: number;
+    riskScore?: number;
   };
 
   // Additional Details
@@ -85,7 +86,7 @@ const StudentSchema: Schema = new Schema({
   
   department: { type: String, required: true, index: true },
   course: { type: String },
-  year: { type: String, required: true, index: true },
+  year: { type: Number, required: true, index: true },
   semester: { type: Number },
   class: { type: String, required: true },
   batchYear: { type: String },
@@ -113,7 +114,7 @@ const StudentSchema: Schema = new Schema({
     linkedInProfile: { type: String },
     githubProfile: { type: String },
     resumeLink: { type: String },
-    placementEligibilityStatus: { type: Boolean, default: true }
+    placementStatus: { type: String, default: 'Eligible' }
   },
   
   performance: {
@@ -123,7 +124,8 @@ const StudentSchema: Schema = new Schema({
     admissionCutoff: { type: Number },
     currentCGPA: { type: Number },
     arrearHistory: { type: Number, default: 0 },
-    activeBacklogs: { type: Number, default: 0 }
+    activeBacklogs: { type: Number, default: 0 },
+    riskScore: { type: Number, default: 0 }
   },
 
   achievements: [{ type: String }],

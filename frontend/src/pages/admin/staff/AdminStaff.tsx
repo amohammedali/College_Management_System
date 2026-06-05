@@ -130,6 +130,7 @@ const AdminStaff = () => {
                   <th className="pl-8 py-5">Faculty Identity</th>
                   <th>Core Department</th>
                   <th>Academic Designation</th>
+                  <th>Performance Metrics</th>
                   <th>Communication</th>
                   <th>Status</th>
                   <th className="pr-8 text-right">Operations</th>
@@ -172,6 +173,13 @@ const AdminStaff = () => {
                         <Calendar size={12} className="text-slate-300" /> {s.assignedYear || 'All'}
                         <span className="w-1 h-1 rounded-full bg-slate-200 mx-1" />
                         <Users size={12} className="text-slate-300" /> {s.assignedSection || 'All'}
+                      </div>
+                    </td>
+                    <td>
+                      <div className="flex items-center gap-2 text-[10px] font-black uppercase text-slate-500 tracking-widest">
+                        <span>API: <span className="text-indigo-600 font-black">{s.apiScore || 'N/A'}</span></span>
+                        <span className="w-1 h-1 rounded-full bg-slate-200 mx-1" />
+                        <span>Papers: <span className="text-indigo-600 font-black">{s.researchPapers || 0}</span></span>
                       </div>
                     </td>
                     <td>

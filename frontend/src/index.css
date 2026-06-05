@@ -82,6 +82,7 @@ body {
   border-radius: 24px;
   box-shadow: var(--card-shadow);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow-x: auto;
 }
 
 .dash-card:hover {
@@ -110,12 +111,17 @@ body {
   left: 0; top: 0;
   overflow-y: auto;
   overflow-x: hidden;
-  transition: width 0.3s cubic-bezier(.4,0,.2,1);
+  transition: all 0.3s cubic-bezier(.4,0,.2,1);
   z-index: 50;
   display: flex;
   flex-direction: column;
 }
 .sidebar.collapsed { width: var(--sidebar-collapsed); }
+
+@media (max-width: 1024px) {
+  .sidebar { transform: translateX(-100%); }
+  .sidebar.mobile-open { transform: translateX(0); width: var(--sidebar-width); }
+}
 
 .sidebar-link {
   display: flex;
@@ -141,8 +147,13 @@ body {
   margin-left: var(--sidebar-width);
   min-height: 100vh;
   transition: margin-left 0.3s cubic-bezier(.4,0,.2,1);
+  width: 100%;
 }
 .main-content.collapsed { margin-left: var(--sidebar-collapsed); }
+
+@media (max-width: 1024px) {
+  .main-content { margin-left: 0 !important; }
+}
 
 /* ── Container & Grid System ────────────────── */
 .page-container {
@@ -172,7 +183,7 @@ body {
 }
 
 /* ── Data Table ────────────────────────────── */
-.data-table { width: 100%; border-collapse: collapse; }
+.data-table { width: 100%; border-collapse: collapse; min-width: 700px; }
 .data-table th {
   background: #f8fafc;
   padding: 12px 16px;

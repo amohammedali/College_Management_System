@@ -68,7 +68,9 @@ const AttendanceMarking = () => {
   const { data: students, isLoading: isStudentsLoading, refetch: fetchStudents } = useQuery({
     queryKey: ['attendance-students', filters.department, filters.year, filters.section],
     queryFn: async () => {
-      const res = await axios.get(`${API}/staff/attendance/students-list`, { params: filters });
+      const res = await axios.get(`${API}/attendance/students`, { 
+        params: { department: filters.department, year: filters.year.match(/\d/)?.[0] || 1, section: filters.section } 
+      });
       return Array.isArray(res.data) ? res.data : [];
     },
     enabled: false // Trigger manually or when filters are ready
@@ -79,16 +81,22 @@ const AttendanceMarking = () => {
       setStudentRecords(students.map((s: any) => ({
         studentId: s._id,
         name: s.name,
-        sid: s.studentId,
-        status: 'present' // Default to present
+        sid: s.registerNo || s.studentId,
+        status: 'present'
       })));
     }
   }, [students]);
 
-  const handleStatusToggle = (id: string) => {
-    setStudentRecords(prev => prev.map(s => 
-      s.studentId === id ? { ...s, status: s.status === 'present' ? 'absent' : 'present' } : s
-    ));
+  const handleStatusCycle = (id: string) => {
+    setStudentRecords(prev => prev.map(s => {
+      if (s.studentId !== id) return s;
+      const nextStatus: any = {
+        'present': 'absent',
+        'absent': 'late',
+        'late': 'present'
+      };
+      return { ...s, status: nextStatus[s.status] };
+    }));
   };
 
   const markAllPresent = () => {
@@ -98,7 +106,7 @@ const AttendanceMarking = () => {
 
   const markAttendanceMutation = useMutation({
     mutationFn: async (payload: any) => {
-      return axios.post(`${API}/staff/attendance/session`, payload);
+      return axios.post(`${API}/attendance/submit`, payload);
     },
     onSuccess: () => {
       toast.success('Attendance session recorded successfully!');
@@ -120,7 +128,8 @@ const AttendanceMarking = () => {
   };
 
   const presentCount = studentRecords.filter(s => s.status === 'present').length;
-  const absentCount = studentRecords.length - presentCount;
+  const lateCount = studentRecords.filter(s => s.status === 'late').length;
+  const absentCount = studentRecords.length - presentCount - lateCount;
 
   return (
     <DashboardLayout title="Attendance Management" subtitle="Precision Daily Tracking & Analytics">
@@ -239,9 +248,9 @@ const AttendanceMarking = () => {
                                     <p className="text-[9px] font-black uppercase text-slate-500 mb-1">Total</p>
                                     <p className="text-2xl font-black">{studentRecords.length}</p>
                                 </div>
-                                <div className="text-center p-4 bg-emerald-500/10 rounded-2xl border border-emerald-500/10">
-                                    <p className="text-[9px] font-black uppercase text-emerald-500/60 mb-1">Present</p>
-                                    <p className="text-2xl font-black text-emerald-400">{presentCount}</p>
+                                <div className="text-center p-4 bg-amber-500/10 rounded-2xl border border-amber-500/10">
+                                    <p className="text-[9px] font-black uppercase text-amber-500/60 mb-1">Late</p>
+                                    <p className="text-2xl font-black text-amber-400">{lateCount}</p>
                                 </div>
                                 <div className="text-center p-4 bg-rose-500/10 rounded-2xl border border-rose-500/10">
                                     <p className="text-[9px] font-black uppercase text-rose-500/60 mb-1">Absent</p>
@@ -298,8 +307,12 @@ const AttendanceMarking = () => {
                                         {studentRecords.map((s, i) => (
                                             <motion.div 
                                                 key={s.studentId} initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.02 }}
-                                                onClick={() => handleStatusToggle(s.studentId)}
-                                                className={`p-6 rounded-[32px] flex items-center justify-between cursor-pointer transition-all border group ${s.status === 'present' ? 'bg-emerald-50/40 border-emerald-100/50' : 'bg-rose-50/40 border-rose-100/50 shadow-xl shadow-rose-500/10'}`}
+                                                onClick={() => handleStatusCycle(s.studentId)}
+                                                className={`p-6 rounded-[32px] flex items-center justify-between cursor-pointer transition-all border group ${
+                                                    s.status === 'present' ? 'bg-emerald-50/40 border-emerald-100/50' : 
+                                                    s.status === 'late' ? 'bg-amber-50/40 border-amber-100/50' :
+                                                    'bg-rose-50/40 border-rose-100/50 shadow-xl shadow-rose-500/10'
+                                                }`}
                                             >
                                                 <div className="flex items-center gap-6">
                                                     <div className={`w-14 h-14 rounded-[22px] flex items-center justify-center font-black italic text-sm transition-all ${s.status === 'present' ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/30' : 'bg-rose-600 text-white shadow-lg shadow-rose-600/30'}`}>
@@ -310,8 +323,12 @@ const AttendanceMarking = () => {
                                                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">{s.sid}</p>
                                                     </div>
                                                 </div>
-                                                <div className={`p-3 rounded-full transition-all ${s.status === 'present' ? 'text-emerald-500 bg-emerald-100/50' : 'text-rose-500 bg-rose-100/50'}`}>
-                                                    {s.status === 'present' ? <CheckCircle2 size={24} /> : <XCircle size={24} />}
+                                                <div className={`p-3 rounded-full transition-all ${
+                                                    s.status === 'present' ? 'text-emerald-500 bg-emerald-100/50' : 
+                                                    s.status === 'late' ? 'text-amber-500 bg-amber-100/50' :
+                                                    'text-rose-500 bg-rose-100/50'
+                                                }`}>
+                                                    {s.status === 'present' ? <CheckCircle2 size={24} /> : s.status === 'late' ? <Clock size={24} /> : <XCircle size={24} />}
                                                 </div>
                                             </motion.div>
                                         ))}

@@ -123,10 +123,10 @@ const TransitionLoader = () => {
     // Show loader
     setIsTransitioning(true);
     
-    // Hide after 2.5 seconds (between 2 and 4 seconds as requested)
+    // Hide after 1 second as requested
     const timer = setTimeout(() => {
       setIsTransitioning(false);
-    }, 2500);
+    }, 1000);
 
     return () => clearTimeout(timer);
   }, [location.pathname]);

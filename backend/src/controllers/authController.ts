@@ -11,12 +11,12 @@ export const login = async (req: Request, res: Response) => {
   const { email, password } = req.body;
 
   try {
-    console.log(`[AUTH] Login attempt for: ${email}`);
-    const user = await User.findOne({ email });
+    console.log(`[AUTH] Attempt: ${email} | Pwd Length: ${password?.length}`);
+    const user = await User.findOne({ email: email.toLowerCase().trim() });
 
     if (user) {
       const isMatch = await user.comparePassword(password);
-      console.log(`[AUTH] User found: ${user.email}, Password Match: ${isMatch}`);
+      console.log(`[AUTH] User: ${user.email} | Match: ${isMatch} | StoredHash: ${user.password.substring(0, 10)}...`);
       if (isMatch) {
         res.json({
           _id: user._id,
@@ -28,7 +28,7 @@ export const login = async (req: Request, res: Response) => {
         res.status(401).json({ message: 'Invalid email or password' });
       }
     } else {
-      console.log(`[AUTH] No user found for: ${email}`);
+      console.log(`[AUTH] User not found: ${email}`);
       res.status(401).json({ message: 'Invalid email or password' });
     }
   } catch (error: any) {

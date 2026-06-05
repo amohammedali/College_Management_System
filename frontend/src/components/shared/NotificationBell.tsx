@@ -21,7 +21,7 @@ const NotificationBell = () => {
     <div className="relative">
       <button 
         onClick={() => setIsOpen(!isOpen)}
-        className="p-3 bg-white border border-slate-100 rounded-2xl text-slate-400 hover:text-indigo-600 hover:border-indigo-100 transition-all shadow-sm relative group"
+        className="p-3 bg-white/5 border border-white/10 rounded-2xl text-white hover:text-primary-300 hover:border-primary-400/30 transition-all shadow-sm relative group"
       >
          <Bell size={20} className="group-hover:rotate-12 transition-transform" />
          {unreadCount > 0 && (

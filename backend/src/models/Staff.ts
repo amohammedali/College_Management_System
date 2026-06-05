@@ -33,6 +33,9 @@ export interface IStaff extends Document {
   dob?: Date;
   specialization?: string;
   onboardingStatus: 'incomplete' | 'complete';
+  apiScore?: number;
+  researchPapers?: number;
+  studentRating?: number;
 }
 
 const StaffSchema: Schema = new Schema({
@@ -63,7 +66,10 @@ const StaffSchema: Schema = new Schema({
   gender: { type: String },
   dob: { type: Date },
   specialization: { type: String },
-  onboardingStatus: { type: String, enum: ['incomplete', 'complete'], default: 'incomplete' }
+  onboardingStatus: { type: String, enum: ['incomplete', 'complete'], default: 'incomplete' },
+  apiScore: { type: Number, default: 0 },
+  researchPapers: { type: Number, default: 0 },
+  studentRating: { type: Number, default: 0 }
 }, { timestamps: true });
 
 export default mongoose.model<IStaff>('Staff', StaffSchema);

@@ -20,7 +20,7 @@ const FacultyDashboard = () => {
 
   const { data: profile } = useQuery({
     queryKey: ['faculty-profile'],
-    queryFn: () => axios.get(`${API}/auth/me`).then(r => r.data),
+    queryFn: () => axios.get(`${API}/staff/profile`).then(r => r.data),
   });
 
   const selfAppraisalMutation = useMutation({
@@ -48,7 +48,7 @@ const FacultyDashboard = () => {
 
                <div className="flex items-end gap-10 mb-12">
                   <p className="text-8xl font-black italic text-primary-400 tracking-tighter">
-                     {isLoading ? '--' : scores?.total}
+                     {isLoading ? '--' : profile?.apiScore || scores?.total || 0}
                   </p>
                   <div className="mb-4">
                      <div className="flex items-center gap-2 text-emerald-400 font-black uppercase tracking-widest text-xs mb-1">
@@ -62,17 +62,17 @@ const FacultyDashboard = () => {
 
                <div className="grid grid-cols-2 md:grid-cols-4 gap-12 pt-10 border-t border-white/5">
                   {[
-                    { label: 'Academic', val: scores?.academic, max: 40, icon: <BookOpen size={14}/> },
-                    { label: 'Research', val: scores?.research, max: 30, icon: <TrendingUp size={14}/> },
-                    { label: 'Feedback', val: scores?.feedback, max: 20, icon: <MessageSquare size={14}/> },
-                    { label: 'Admin', val: scores?.admin, max: 10, icon: <Briefcase size={14}/> }
+                    { label: 'Research Papers', val: profile?.researchPapers || 0, max: 'Total', icon: <TrendingUp size={14}/> },
+                    { label: 'Student Rating', val: profile?.studentRating || 0, max: '5.0', icon: <MessageSquare size={14}/> },
+                    { label: 'Academic', val: scores?.academic || 0, max: 40, icon: <BookOpen size={14}/> },
+                    { label: 'Admin Duty', val: scores?.admin || 0, max: 10, icon: <Briefcase size={14}/> }
                   ].map((item, i) => (
                     <div key={i}>
                        <div className="flex items-center gap-2 mb-2">
                           <span className="text-primary-500">{item.icon}</span>
                           <p className="text-[10px] font-black uppercase text-slate-500 tracking-widest">{item.label}</p>
                        </div>
-                       <p className="text-2xl font-black italic">{item.val || 0}<span className="text-xs text-slate-600 ml-1 font-bold">/{item.max}</span></p>
+                       <p className="text-2xl font-black italic">{item.val}<span className="text-xs text-slate-600 ml-1 font-bold">/{item.max}</span></p>
                     </div>
                   ))}
                </div>

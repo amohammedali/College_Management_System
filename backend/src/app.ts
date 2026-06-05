@@ -59,6 +59,8 @@ import leaveRoutes from './routes/leaveRoutes.js';
 import broadcastRoutes from './routes/broadcastRoutes.js';
 import analyticsRoutes from './routes/analyticsRoutes.js';
 import reportRoutes from './routes/reportRoutes.js';
+import attendanceRoutes from './routes/attendanceRoutes.js';
+import markRoutes from './routes/markRoutes.js';
 import { checkMaintenance } from './middlewares/maintenance.js';
 
 app.get('/api/health', (_req: Request, res: Response) => {
@@ -78,6 +80,8 @@ app.use('/api/leaves', leaveRoutes);
 app.use('/api/broadcast', broadcastRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/reports', reportRoutes);
+app.use('/api/attendance', attendanceRoutes);
+app.use('/api/marks', markRoutes);
 
 // ── Global Error Handler ───────────────────────────────────
 app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {

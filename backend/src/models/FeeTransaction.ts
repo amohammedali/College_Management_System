@@ -41,19 +41,18 @@ const FeeTransactionSchema: Schema = new Schema({
 
 // ── IMMUTABLE LEDGER PROTECTION ────────────────────────────
 // No Update, No Delete via Mongoose middleware
-FeeTransactionSchema.pre('save', function(next) {
+FeeTransactionSchema.pre('save', function() {
   if (!this.isNew) {
-    return next(new Error('Fee transactions are immutable and cannot be updated.'));
+    throw new Error('Fee transactions are immutable and cannot be updated.');
   }
-  next();
 });
 
-FeeTransactionSchema.pre('deleteOne', { document: true, query: false }, function(next) {
-  next(new Error('Fee transactions are immutable and cannot be deleted.'));
+FeeTransactionSchema.pre('deleteOne', { document: true, query: false }, function() {
+  throw new Error('Fee transactions are immutable and cannot be deleted.');
 });
 
-FeeTransactionSchema.pre('findOneAndDelete', function(next) {
-  next(new Error('Fee transactions are immutable and cannot be deleted.'));
+FeeTransactionSchema.pre('findOneAndDelete', function() {
+  throw new Error('Fee transactions are immutable and cannot be deleted.');
 });
 
 // ── INDEXES ────────────────────────────────────────────────

@@ -10,7 +10,7 @@ export interface IClassAttendance extends Document {
   hour: number;
   students: {
     studentId: mongoose.Types.ObjectId;
-    status: 'present' | 'absent';
+    status: 'present' | 'absent' | 'late';
   }[];
   totalStudents: number;
   presentCount: number;
@@ -27,7 +27,7 @@ const ClassAttendanceSchema: Schema = new Schema({
   hour: { type: Number, required: true },
   students: [{
     studentId: { type: Schema.Types.ObjectId, ref: 'Student', required: true },
-    status: { type: String, enum: ['present', 'absent'], required: true }
+    status: { type: String, enum: ['present', 'absent', 'late'], required: true }
   }],
   totalStudents: { type: Number, required: true },
   presentCount: { type: Number, required: true },

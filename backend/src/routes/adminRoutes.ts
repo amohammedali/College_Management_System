@@ -17,6 +17,8 @@ import Subject from '../models/Subject.js';
 import Department from '../models/Department.js';
 import SubjectProposal from '../models/SubjectProposal.js';
 import Room from '../models/Room.js';
+import SectionSubject from '../models/SectionSubject.js';
+import ClassAttendance from '../models/ClassAttendance.js';
 
 const router = Router();
 
@@ -185,8 +187,7 @@ router.get('/stats', async (_req, res) => {
     const revenueAgg = await FeeTransaction.aggregate([
       { 
         $match: { 
-          status: 'captured',
-          createdAt: { $gte: sixMonthsAgo }
+          status: 'captured'
         } 
       },
       {
@@ -209,8 +210,18 @@ router.get('/stats', async (_req, res) => {
     })) : [];
 
     // Academic Grading Index (Dynamic)
-    // To be implemented fully when Marks module is wired
+    const healthAnalytics = latestAnalytics.find(a => a.type === 'health_index');
     const gradeData: any[] = [];
+    if (healthAnalytics && healthAnalytics.dataPoints?.academic_grading_index) {
+       healthAnalytics.dataPoints.academic_grading_index.forEach((item: any) => {
+         gradeData.push({
+           subject: item.faculty,
+           excellent: Math.round(item.avg_grade * 10),
+           good: Math.round(item.avg_grade * 8),
+           average: Math.round(item.avg_grade * 5)
+         });
+       });
+    }
 
     // System Intelligence Logs (Dynamic)
     const [recentStaff, recentStudents, recentProposals, recentDepts] = await Promise.all([
@@ -716,6 +727,65 @@ router.get('/rooms', async (_req, res) => {
   try {
     const rooms = await Room.find().lean();
     res.json(rooms);
+  } catch (e: any) {
+    res.status(500).json({ message: e.message });
+  }
+});
+
+// ── Section Subject Mappings ───────────────────────────────
+router.get('/section-subjects', async (req, res) => {
+  try {
+    const { department, semester, section } = req.query;
+    const dept = await Department.findOne({ name: department });
+    if (!dept) return res.status(404).json({ message: 'Dept not found' });
+
+    const yearNum = Math.ceil(Number(semester) / 2);
+
+    const allocation = await SectionSubject.findOne({
+      dept_id: dept._id,
+      year: yearNum,
+      section
+    }).populate('subjects.subject_id').populate('subjects.faculty_id', 'name staffId department designation').lean();
+    
+    res.json(allocation || { subjects: [] });
+  } catch (e: any) {
+    res.status(500).json({ message: e.message });
+  }
+});
+
+// GET Aggregate Attendance for Dashboard
+router.get('/attendance/aggregate', async (req, res) => {
+  try {
+    const depts = await Department.find().lean();
+    const stats = await Promise.all(depts.map(async (dept) => {
+      const attendance = await ClassAttendance.find({ department: dept.name }).lean();
+      if (attendance.length === 0) return { name: dept.name, pct: 0 };
+      
+      const totalPct = attendance.reduce((acc, curr) => acc + (curr.presentCount / curr.totalStudents) * 100, 0);
+      return {
+        name: dept.name,
+        pct: Math.round(totalPct / attendance.length)
+      };
+    }));
+    res.json(stats);
+  } catch (e: any) {
+    res.status(500).json({ message: e.message });
+  }
+});
+
+// GET Aggregate Marks for Dashboard
+router.get('/marks/aggregate', async (req, res) => {
+  try {
+    const marks = await Mark.find().lean();
+    const distribution = [
+      { grade: 'A+', count: marks.filter(m => m.grade === 'A+').length },
+      { grade: 'A', count: marks.filter(m => m.grade === 'A').length },
+      { grade: 'B+', count: marks.filter(m => m.grade === 'B+').length },
+      { grade: 'B', count: marks.filter(m => m.grade === 'B').length },
+      { grade: 'C', count: marks.filter(m => m.grade === 'C').length },
+      { grade: 'F', count: marks.filter(m => m.grade === 'F').length },
+    ];
+    res.json(distribution);
   } catch (e: any) {
     res.status(500).json({ message: e.message });
   }

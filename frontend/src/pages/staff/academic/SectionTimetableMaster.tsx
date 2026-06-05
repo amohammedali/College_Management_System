@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import DashboardLayout from '../../../components/layout/DashboardLayout';
 import { 
   Calendar, Printer, HardDrive, 
@@ -13,6 +13,7 @@ import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'react-hot-toast';
+import { useAuth } from '../../../context/AuthContext';
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -37,14 +38,32 @@ const colorClasses: any = {
 };
 
 const SectionTimetableMaster = () => {
+  const { user } = useAuth();
   const [selectedDept, setSelectedDept] = useState('');
-  const [selectedYear, setSelectedYear] = useState('3');
+  const [selectedYear, setSelectedYear] = useState('1');
   const [selectedSection, setSelectedSection] = useState('A');
-  const [selectedSem, setSelectedSem] = useState(5);
+  const [selectedSem, setSelectedSem] = useState(1);
   const [activeReg, setActiveReg] = useState('2023');
   const [selectedFacultyId, setSelectedFacultyId] = useState<string | null>(null);
   const [isTransposed, setIsTransposed] = useState(true);
   const [isDownloading, setIsDownloading] = useState(false);
+
+  // 0. Fetch Staff Profile for Counselor defaults
+  const { data: profile } = useQuery({
+    queryKey: ['staff-profile'],
+    queryFn: () => axios.get(`${API}/staff/profile`).then(r => r.data),
+    enabled: !!user && user.role === 'staff'
+  });
+
+  useEffect(() => {
+    if (profile?.assignedYear && profile?.assignedSection) {
+      setSelectedDept(profile.department);
+      setSelectedSection(profile.assignedSection);
+      const year = profile.assignedYear.match(/\d+/) ? profile.assignedYear.match(/\d+/)[0] : '1';
+      setSelectedYear(year);
+      setSelectedSem(Number(year) * 2 - 1);
+    }
+  }, [profile]);
 
   // 1. Fetch Departments (using shared endpoint)
   const { data: departments } = useQuery({
@@ -73,29 +92,39 @@ const SectionTimetableMaster = () => {
     return matrix;
   }, [slots]);
 
-  // 3. Extract Unique Subject Mapping
+  // 3. Extract Unique Subject Mapping with Teaching Counts
   const facultyMapping = useMemo(() => {
     if (!slots) return [];
     const map = new Map();
     slots.forEach((s: any) => {
-      const key = s.subject_id?._id;
-      if (!map.has(key)) {
-        map.set(key, {
+      const subjectKey = s.subject_id?._id;
+      if (!map.has(subjectKey)) {
+        map.set(subjectKey, {
           code: s.subject_id?.code,
           name: s.subject_id?.name,
-          faculty: s.faculty_ids?.[0]?.name,
-          staffId: s.faculty_ids?.[0]?.staffId,
-          facultyId: s.faculty_ids?.[0]?._id
+          faculties: s.faculty_ids?.map((f: any) => ({
+            name: f.name,
+            staffId: f.staffId,
+            id: f._id
+          })) || [],
+          periods: 0
         });
       }
+      map.get(subjectKey).periods += 1;
     });
     return Array.from(map.values()).sort((a, b) => a.code.localeCompare(b.code));
   }, [slots]);
 
-  // 4. Fetch Selected Faculty Profile
+  // 4. Fetch Selected Faculty Profile & Research
   const { data: facultyProfile, isLoading: isFacultyLoading } = useQuery({
     queryKey: ['faculty-public-profile', selectedFacultyId],
     queryFn: () => axios.get(`${API}/staff/public/${selectedFacultyId}`).then(r => r.data),
+    enabled: !!selectedFacultyId
+  });
+
+  const { data: facultyResearch } = useQuery({
+    queryKey: ['faculty-research', selectedFacultyId],
+    queryFn: () => axios.get(`${API}/appraisal/research/${selectedFacultyId}`).then(r => r.data),
     enabled: !!selectedFacultyId
   });
 
@@ -273,11 +302,15 @@ const SectionTimetableMaster = () => {
                                                         <h6 className="text-[9px] font-black leading-tight line-clamp-1">{slot.subject_id?.name}</h6>
                                                      </div>
                                                      <div className="mt-auto pt-2 border-t border-current/10">
-                                                        <p className="text-[8px] font-black uppercase truncate leading-none mb-1 cursor-pointer hover:text-indigo-600 transition-colors" 
-                                                           onClick={() => setSelectedFacultyId(slot.faculty_ids?.[0]?._id)}>
-                                                           {slot.faculty_ids?.[0]?.name}
-                                                        </p>
-                                                        <div className="flex items-center justify-between">
+                                                        <div className="space-y-0.5">
+                                                           {slot.faculty_ids?.map((f: any) => (
+                                                              <p key={f._id} className="text-[8px] font-black uppercase truncate leading-none cursor-pointer hover:text-indigo-600 transition-colors" 
+                                                                 onClick={() => setSelectedFacultyId(f._id)}>
+                                                                 {f.name}
+                                                              </p>
+                                                           ))}
+                                                        </div>
+                                                        <div className="flex items-center justify-between mt-2">
                                                            <span className="text-[7px] font-bold opacity-60 uppercase tracking-widest">{slot.room_id?.name}</span>
                                                            <CheckCircle2 size={10} className="opacity-40" />
                                                         </div>
@@ -311,11 +344,15 @@ const SectionTimetableMaster = () => {
                                                         <h6 className="text-[9px] font-black leading-tight line-clamp-1">{slot.subject_id?.name}</h6>
                                                      </div>
                                                      <div className="mt-auto pt-2 border-t border-current/10">
-                                                        <p className="text-[8px] font-black uppercase truncate leading-none mb-1 cursor-pointer hover:text-indigo-600 transition-colors" 
-                                                           onClick={() => setSelectedFacultyId(slot.faculty_ids?.[0]?._id)}>
-                                                           {slot.faculty_ids?.[0]?.name}
-                                                        </p>
-                                                        <div className="flex items-center justify-between">
+                                                        <div className="space-y-0.5">
+                                                           {slot.faculty_ids?.map((f: any) => (
+                                                              <p key={f._id} className="text-[8px] font-black uppercase truncate leading-none cursor-pointer hover:text-indigo-600 transition-colors" 
+                                                                 onClick={() => setSelectedFacultyId(f._id)}>
+                                                                 {f.name}
+                                                              </p>
+                                                           ))}
+                                                        </div>
+                                                        <div className="flex items-center justify-between mt-2">
                                                            <span className="text-[7px] font-bold opacity-60 uppercase tracking-widest">{slot.room_id?.name}</span>
                                                            <CheckCircle2 size={10} className="opacity-40" />
                                                         </div>
@@ -353,21 +390,25 @@ const SectionTimetableMaster = () => {
                        {facultyMapping.map((m: any, idx) => (
                           <div 
                             key={idx} 
-                            onClick={() => setSelectedFacultyId(m.facultyId)}
-                            className="p-6 bg-white rounded-3xl border border-slate-100 flex items-center gap-5 group hover:border-indigo-400 cursor-pointer transition-all shadow-sm"
+                            className="p-6 bg-white rounded-3xl border border-slate-100 flex items-center gap-5 group hover:border-indigo-400 transition-all shadow-sm relative overflow-hidden"
                           >
-                             <div className="w-12 h-12 bg-indigo-50 rounded-2xl flex items-center justify-center text-indigo-600 font-black text-[10px] group-hover:bg-indigo-600 group-hover:text-white transition-all">
+                             <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none group-hover:scale-110 transition-transform"><BookOpen size={60} /></div>
+                             <div className="w-12 h-12 bg-indigo-50 rounded-2xl flex items-center justify-center text-indigo-600 font-black text-[10px] group-hover:bg-indigo-600 group-hover:text-white transition-all shrink-0">
                                 {m.code.substring(0, 2)}
                              </div>
                              <div className="flex-1 min-w-0">
-                                <p className="text-[8px] font-black uppercase text-slate-400 mb-0.5">{m.code}</p>
+                                <p className="text-[8px] font-black uppercase text-slate-400 mb-0.5">{m.code} • {m.periods} Periods/Week</p>
                                 <p className="text-[10px] font-black text-slate-800 truncate mb-1">{m.name}</p>
-                                <p className="text-[9px] font-bold text-indigo-600 flex items-center gap-1.5 uppercase italic">
-                                   <Users size={12} className="text-indigo-400" /> {m.faculty}
-                                </p>
+                                <div className="space-y-1">
+                                   {m.faculties.map((f: any) => (
+                                      <p key={f.id} onClick={() => setSelectedFacultyId(f.id)} className="text-[9px] font-bold text-indigo-600 flex items-center gap-1.5 uppercase italic hover:text-indigo-800 cursor-pointer">
+                                         <Users size={12} className="text-indigo-400" /> {f.name}
+                                      </p>
+                                   ))}
+                                </div>
                              </div>
-                             <div className="text-[8px] font-black text-slate-300 uppercase tracking-widest bg-slate-50 px-2 py-1 rounded-md">
-                                {m.staffId}
+                             <div className="text-[8px] font-black text-slate-300 uppercase tracking-widest bg-slate-50 px-2 py-1 rounded-md shrink-0">
+                                {m.faculties?.[0]?.staffId}
                              </div>
                           </div>
                        ))}
@@ -499,6 +540,40 @@ const SectionTimetableMaster = () => {
                                     ))}
                                  </div>
                               </div>
+                           </div>
+                        </div>
+
+                        {/* Research Publications Section */}
+                        <div className="px-10 pb-10 border-t border-slate-100 pt-8">
+                           <div className="flex items-center gap-3 text-slate-400 mb-6">
+                              <Sparkles size={16} className="text-indigo-500" />
+                              <span className="text-[10px] font-black uppercase tracking-widest">Verified Research Publications</span>
+                           </div>
+                           <div className="grid grid-cols-1 gap-3 max-h-48 overflow-y-auto pr-4 custom-scrollbar">
+                              {facultyResearch?.length > 0 ? (
+                                 facultyResearch.map((pub: any) => (
+                                    <div key={pub._id} className="p-4 bg-white border border-slate-100 rounded-2xl flex items-center justify-between group hover:border-indigo-200 transition-all shadow-sm">
+                                       <div className="flex-1 min-w-0">
+                                          <p className="text-[10px] font-black text-slate-800 truncate mb-0.5">{pub.title}</p>
+                                          <p className="text-[8px] font-bold text-slate-400 uppercase">{pub.journal || pub.pubType} • {pub.yearPublished}</p>
+                                       </div>
+                                       <div className="flex items-center gap-3">
+                                          {pub.doi && (
+                                             <a href={`https://doi.org/${pub.doi}`} target="_blank" rel="noreferrer" className="p-2 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-600 hover:text-white transition-all">
+                                                <ExternalLink size={12} />
+                                             </a>
+                                          )}
+                                          <div className={`px-2 py-0.5 rounded-md text-[7px] font-black uppercase ${pub.isVerified ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'}`}>
+                                             {pub.isVerified ? 'Verified' : 'Pending'}
+                                          </div>
+                                       </div>
+                                    </div>
+                                 ))
+                              ) : (
+                                 <div className="py-6 text-center bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+                                    <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest">No verified publications found</p>
+                                 </div>
+                              )}
                            </div>
                         </div>
 

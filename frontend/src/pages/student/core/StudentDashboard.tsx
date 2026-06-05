@@ -109,7 +109,7 @@ const StudentDashboard = () => {
                   {marks?.length > 0 ? marks.map((m: any, i: number) => (
                     <tr key={i} className="hover:bg-slate-50/50 transition-colors group">
                       <td className="px-8 py-6">
-                        <p className="font-bold text-slate-800 text-sm group-hover:text-indigo-600 transition-colors">{m.subject}</p>
+                        <p className="font-bold text-slate-800 text-sm group-hover:text-indigo-600 transition-colors">{typeof m.subject === 'object' ? m.subject?.name : m.subject}</p>
                         <p className="text-[10px] font-black text-slate-400 uppercase mt-0.5">{m.semester ? `Sem-${m.semester}` : 'Theory'}</p>
                       </td>
                       <td className="px-8 py-6">

@@ -46,6 +46,46 @@ router.get('/my-summary', protect, async (req: AuthRequest, res: Response) => {
   }
 });
 
+// @route   GET /api/leaves/admin/all
+// @desc    Get all leave requests for admin
+router.get('/admin/all', protect, authorize('admin'), async (req: AuthRequest, res: Response) => {
+  try {
+    const status = req.query.status as string || 'Pending';
+    const leaves = await LeaveRequest.find({ status })
+      .populate('user', 'email role')
+      .sort({ createdAt: -1 })
+      .lean();
+      
+    // Manually fetch names and IDs from Staff/Student collections
+    const populatedLeaves = await Promise.all(leaves.map(async (leave: any) => {
+       if (leave.user && leave.role === 'staff') {
+          const staffRef = await import('../models/Staff.js').then(m => m.default).catch(() => null);
+          if (staffRef) {
+             const staffDetails = await staffRef.findOne({ user: leave.user._id }).lean();
+             if (staffDetails) {
+                 leave.user.name = staffDetails.name;
+                 leave.user.studentId = staffDetails.staffId;
+             }
+          }
+       } else if (leave.user && leave.role === 'student') {
+          const studentRef = await import('../models/Student.js').then(m => m.default).catch(() => null);
+          if (studentRef) {
+             const studentDetails = await studentRef.findOne({ user: leave.user._id }).lean();
+             if (studentDetails) {
+                 leave.user.name = studentDetails.name;
+                 leave.user.studentId = studentDetails.studentId;
+             }
+          }
+       }
+       return leave;
+    }));
+      
+    res.json(populatedLeaves);
+  } catch (error: any) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
 // @route   POST /api/leaves/approve
 // @desc    Approve/Reject leave (HOD/Principal)
 router.post('/approve', protect, authorize('admin'), async (req: AuthRequest, res: Response) => {

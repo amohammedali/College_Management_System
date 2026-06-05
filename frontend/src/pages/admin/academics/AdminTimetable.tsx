@@ -14,8 +14,8 @@ const API = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const TIMES = [
-  '08:30 AM', '09:30 AM', '10:30 AM', '11:30 AM', 
-  '12:30 PM', '01:30 PM', '02:30 PM', '03:30 PM'
+  '08:30 AM', '09:25 AM', '10:40 AM', '11:35 AM', 
+  '01:15 PM', '02:10 PM', '03:05 PM', '04:00 PM'
 ];
 
 const AdminTimetable = () => {
@@ -23,6 +23,7 @@ const AdminTimetable = () => {
   const [selectedDept, setSelectedDept] = useState<string | null>(null);
   const [selectedSem, setSelectedSem] = useState(1);
   const [selectedSection, setSelectedSection] = useState('A');
+  const [selectedReg, setSelectedReg] = useState('2023');
   const [activeSlot, setActiveSlot] = useState<{ day: string, time: string } | null>(null);
   const [timetable, setTimetable] = useState<Record<string, any>>({});
   const [hoveredSubject, setHoveredSubject] = useState<any>(null);
@@ -43,20 +44,47 @@ const AdminTimetable = () => {
 
   // 2. Fetch all subjects for the selected dept
   const { data: allSubjects } = useQuery({
-    queryKey: ['admin-subjects', selectedDept],
-    queryFn: () => axios.get(`${API}/admin/subjects?department=${selectedDept}&semester=all`).then(r => r.data),
+    queryKey: ['admin-subjects', selectedDept, selectedReg],
+    queryFn: () => axios.get(`${API}/admin/subjects?department=${selectedDept}&semester=all&regulation=${selectedReg}`).then(r => r.data),
+    enabled: !!selectedDept
+  });
+
+  // 2.1 Fetch Section-Specific Subject Allocations
+  const { data: sectionAllocation } = useQuery({
+    queryKey: ['admin-section-subjects', selectedDept, selectedSem, selectedSection],
+    queryFn: () => axios.get(`${API}/admin/section-subjects?department=${selectedDept}&semester=${selectedSem}&section=${selectedSection}`).then(r => r.data),
     enabled: !!selectedDept
   });
 
   const filteredSubjects = React.useMemo(() => {
     if (!allSubjects) return [];
-    return allSubjects.filter((sub: any) => {
-      if (paletteSemesterFilter !== 'All' && sub.semester !== paletteSemesterFilter) return false;
-      if (paletteFacultyFilter === 'Assigned' && (!sub.faculties || sub.faculties.length === 0)) return false;
-      if (paletteFacultyFilter === 'Unassigned' && sub.faculties?.length > 0) return false;
-      return true;
-    });
-  }, [allSubjects, paletteSemesterFilter, paletteFacultyFilter]);
+    
+    return allSubjects
+      .map((sub: any) => {
+        // Find if this subject has a section-specific allocation
+        const alloc = sectionAllocation?.subjects?.find((s: any) => 
+          String(s.subject_id?._id || s.subject_id) === String(sub._id)
+        );
+
+        if (alloc?.faculty_id) {
+          const facultyId = String(alloc.faculty_id._id || alloc.faculty_id);
+          const facultyExists = sub.faculties?.some((f: any) => String(f._id || f) === facultyId);
+          if (!facultyExists) {
+            return {
+              ...sub,
+              faculties: [alloc.faculty_id, ...(sub.faculties || [])]
+            };
+          }
+        }
+        return sub;
+      })
+      .filter((sub: any) => {
+        if (paletteSemesterFilter !== 'All' && sub.semester !== paletteSemesterFilter) return false;
+        if (paletteFacultyFilter === 'Assigned' && (!sub.faculties || sub.faculties.length === 0)) return false;
+        if (paletteFacultyFilter === 'Unassigned' && sub.faculties?.length > 0) return false;
+        return true;
+      });
+  }, [allSubjects, paletteSemesterFilter, paletteFacultyFilter, sectionAllocation]);
 
   // 3. Fetch Staff for the selected dept
   const { data: staffList } = useQuery({
@@ -70,6 +98,50 @@ const AdminTimetable = () => {
     queryKey: ['admin-rooms'],
     queryFn: () => axios.get(`${API}/admin/rooms`).then(r => r.data)
   });
+
+  // 5. Fetch Existing Timetable Slots (Sync)
+  const { data: existingSlots } = useQuery({
+    queryKey: ['timetable-slots-admin', selectedDept, selectedSem, selectedSection, selectedReg],
+    queryFn: () => {
+      const deptObj = departments?.find((d: any) => d.name === selectedDept);
+      if (!deptObj) return [];
+      
+      const academic_year = Math.ceil(selectedSem / 2);
+
+      return axios.get(`${API}/timetable`, {
+        params: {
+          dept_id: deptObj._id,
+          academic_year: academic_year,
+          semester: selectedSem,
+          section: selectedSection,
+          regulation_year: Number(selectedReg)
+        }
+      }).then(r => r.data);
+    },
+    enabled: !!selectedDept && !!departments
+  });
+
+  // 6. Sync state with database
+  React.useEffect(() => {
+    if (existingSlots) {
+      const newTimetable: Record<string, any> = {};
+      existingSlots.forEach((slot: any) => {
+        const time = TIMES[slot.period - 1];
+        if (time) {
+          newTimetable[`${slot.day}-${time}`] = {
+            _id: slot._id,
+            subjectId: slot.subject_id?._id,
+            subjectName: slot.subject_id?.name,
+            facultyIds: slot.faculty_ids?.map((f: any) => f._id),
+            facultyName: slot.faculty_ids?.map((f: any) => f.name).join(' & '),
+            type: slot.subject_id?.type?.toLowerCase().includes('lab') ? 'lab' : 'theory',
+            room: slot.room_id?.name
+          };
+        }
+      });
+      setTimetable(newTimetable);
+    }
+  }, [existingSlots]);
 
   const [subjectRoomMap, setSubjectRoomMap] = useState<Record<string, string>>({});
 
@@ -92,26 +164,51 @@ const AdminTimetable = () => {
     assignFacultyMutation.mutate({ subjectId: subject._id, facultyIds: updatedIds });
   };
 
+  const assignSlotMutation = useMutation({
+    mutationFn: (data: any) => axios.post(`${API}/timetable/slot`, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['timetable-slots-admin'] });
+      setActiveSlot(null);
+    }
+  });
+
   const handleAssign = (subject: any) => {
-    if (!activeSlot) return;
-    if (!subject.faculties || subject.faculties.length === 0) return;
+    if (!activeSlot || !selectedDept) return;
+    if (!subject.faculties || subject.faculties.length === 0) {
+      alert("Please map at least one faculty to this subject first.");
+      return;
+    }
 
     const selectedRoomId = subjectRoomMap[subject._id];
-    const roomObj = rooms?.find((r: any) => r._id === selectedRoomId);
-    
-    const facultyNames = subject.faculties.map((f: any) => f.name).join(' & ');
-    
-    const slotData = {
-      subjectId: subject._id,
-      subjectName: subject.name,
-      facultyIds: subject.faculties.map((f: any) => f._id),
-      facultyName: facultyNames,
-      type: subject.type === 'Lab/Practical' ? 'lab' : 'theory',
-      room: roomObj ? roomObj.name : (subject.type === 'Lab/Practical' ? 'UNASSIGNED LAB' : 'NO ROOM')
+    if (!selectedRoomId) {
+      alert("Please select a physical asset (room) first.");
+      return;
+    }
+
+    const deptObj = departments?.find((d: any) => d.name === selectedDept);
+    const period = TIMES.indexOf(activeSlot.time) + 1;
+    const academic_year = Math.ceil(selectedSem / 2);
+
+    const payload = {
+      dept_id: deptObj._id,
+      section: selectedSection,
+      academic_year,
+      semester: selectedSem,
+      day: activeSlot.day,
+      period,
+      subject_id: subject._id,
+      faculty_ids: subject.faculties.map((f: any) => typeof f === 'object' ? f._id : f),
+      room_id: selectedRoomId,
+      regulation_year: Number(selectedReg)
     };
-    setTimetable(prev => ({ ...prev, [`${activeSlot.day}-${activeSlot.time}`]: slotData }));
-    setActiveSlot(null);
+
+    assignSlotMutation.mutate(payload);
   };
+
+  const deleteSlotMutation = useMutation({
+    mutationFn: (id: string) => axios.delete(`${API}/timetable/slot/${id}`),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['timetable-slots-admin'] })
+  });
 
   const publishMutation = useMutation({
     mutationFn: (data: any) => axios.post(`${API}/admin/timetable`, data),
@@ -224,13 +321,25 @@ const AdminTimetable = () => {
                         {availableSections.map(s => <option key={s} value={s}>Section {s}</option>)}
                       </select>
                     </div>
+                    <div className="w-px h-4 bg-slate-200" />
+                    <div className="flex items-center gap-2 px-4 py-2 bg-indigo-50 rounded-xl text-indigo-600 border border-indigo-100">
+                      <Zap size={14} />
+                      <select value={selectedReg} onChange={e => setSelectedReg(e.target.value)} className="text-[11px] font-black uppercase outline-none bg-transparent">
+                        <option value="2023">R2023</option>
+                        <option value="2025">R2025</option>
+                      </select>
+                    </div>
                   </div>
                 </div>
               </div>
 
-              <button onClick={handlePublish} disabled={publishMutation.isPending} className="px-12 py-5 bg-indigo-600 text-white rounded-[2rem] text-[12px] font-black uppercase tracking-widest shadow-2xl shadow-indigo-500/30 hover:bg-indigo-700 hover:scale-105 active:scale-95 transition-all flex items-center gap-4">
-                {publishMutation.isPending ? <RefreshCw className="animate-spin" size={20} /> : <Save size={20} />}
-                Publish Master Timetable
+              <button 
+                onClick={handlePublish} 
+                disabled={publishMutation.isPending || assignSlotMutation.isPending} 
+                className="px-12 py-5 bg-indigo-600 text-white rounded-[2rem] text-[12px] font-black uppercase tracking-widest shadow-2xl shadow-indigo-500/30 hover:bg-indigo-700 hover:scale-105 active:scale-95 transition-all flex items-center gap-4 disabled:opacity-50"
+              >
+                {(publishMutation.isPending || assignSlotMutation.isPending) ? <RefreshCw className="animate-spin" size={20} /> : <Save size={20} />}
+                {assignSlotMutation.isPending ? 'Seeding Slot...' : 'Publish Master Timetable'}
               </button>
             </div>
 
@@ -398,6 +507,10 @@ const AdminTimetable = () => {
                     <h3 className="text-xl font-black text-slate-800 tracking-tight">Time Matrix</h3>
                     <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Master Grid Overview</p>
                   </div>
+                  <div className="flex items-center gap-2 px-3 py-1 bg-emerald-50 text-emerald-600 rounded-lg border border-emerald-100">
+                    <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
+                    <span className="text-[9px] font-black uppercase tracking-widest">Live Sync Active</span>
+                  </div>
                 </div>
 
                 <div className="overflow-x-auto custom-scrollbar">
@@ -439,7 +552,10 @@ const AdminTimetable = () => {
                                         {subject.type === 'lab' ? <Layers size={14} /> : <BookOpen size={14} />}
                                       </div>
                                       <button 
-                                        onClick={(e) => { e.stopPropagation(); setTimetable(prev => { const n = {...prev}; delete n[slotId]; return n; }); }} 
+                                        onClick={(e) => { 
+                                          e.stopPropagation(); 
+                                          if (subject._id) deleteSlotMutation.mutate(subject._id);
+                                        }} 
                                         className="w-6 h-6 rounded-lg bg-black/10 hover:bg-black/20 text-white flex items-center justify-center transition-colors"
                                       >
                                         <X size={12} />

@@ -21,19 +21,19 @@ const SubjectAllocation = () => {
     queryFn: () => axios.get(`${API}/staff/profile`).then(r => r.data),
   });
 
-  // 2. Fetch Class Subjects (Allocations)
   const { data: allocations, isLoading: isAllocationLoading } = useQuery({
     queryKey: ['my-class-subjects'],
     queryFn: () => axios.get(`${API}/staff/my-class/subjects`).then(r => r.data),
-    enabled: !!profile?.department && !!profile?.assignedYear && !!profile?.assignedSection
+    enabled: !!profile?.department // Bypassed counselor check
   });
 
   // 3. Fetch All Subjects for this Department and Year (to allow selection if not allocated)
   const { data: allDepartmentSubjects } = useQuery({
-    queryKey: ['dept-subjects', profile?.department, profile?.assignedYear],
+    queryKey: ['dept-subjects', profile?.department, profile?.assignedYear || 'Year 2'],
     queryFn: async () => {
         // Infer semesters from year (e.g. 3rd Year = Sem 5 & 6)
-        const yearNum = parseInt(profile?.assignedYear.match(/\d+/) ? profile?.assignedYear.match(/\d+/)[0] : '1');
+        const yearStr = profile?.assignedYear || 'Year 2';
+        const yearNum = parseInt(yearStr.match(/\d+/) ? yearStr.match(/\d+/)[0] : '1');
         const s1 = (yearNum * 2) - 1;
         const s2 = yearNum * 2;
         
@@ -43,7 +43,7 @@ const SubjectAllocation = () => {
         // Filter by semester
         return res.data.filter((s: any) => s.semester === s1 || s.semester === s2);
     },
-    enabled: !!profile?.department && !!profile?.assignedYear
+    enabled: !!profile?.department
   });
 
   // 4. Fetch All Teaching Staff (to populate faculty dropdown)
@@ -72,7 +72,7 @@ const SubjectAllocation = () => {
     allocateMutation.mutate({ subjectId, facultyId });
   };
 
-  const isCounselor = !!profile?.assignedYear && !!profile?.assignedSection;
+  const isCounselor = true; // !!profile?.assignedYear && !!profile?.assignedSection;
 
   // Merge allocated data with all potential subjects
   const subjectsToDisplay = allDepartmentSubjects?.map((sub: any) => {

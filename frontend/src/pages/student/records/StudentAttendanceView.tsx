@@ -9,12 +9,14 @@ import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
 import DashboardLayout from '../../../components/layout/DashboardLayout';
 
+const API = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+
 const StudentAttendanceView = () => {
   // Fetch subject-wise stats
   const { data: stats, isLoading: isStatsLoading } = useQuery({
     queryKey: ['my-attendance-stats'],
     queryFn: async () => {
-      const res = await axios.get('/api/student/attendance/my-stats');
+      const res = await axios.get(`${API}/student/attendance/my-stats`);
       return res.data;
     }
   });
@@ -23,7 +25,7 @@ const StudentAttendanceView = () => {
   const { data: history, isLoading: isHistoryLoading } = useQuery({
     queryKey: ['my-attendance-history'],
     queryFn: async () => {
-      const res = await axios.get('/api/student/attendance/my-history');
+      const res = await axios.get(`${API}/student/attendance/my-history`);
       return res.data;
     }
   });

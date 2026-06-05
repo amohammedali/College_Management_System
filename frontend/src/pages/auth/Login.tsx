@@ -31,8 +31,12 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center relative overflow-hidden"
-      style={{ background: 'linear-gradient(135deg, #0c4a6e 0%, #075985 40%, #0369a1 100%)' }}>
+    <div className="min-h-screen flex items-center justify-center relative overflow-hidden bg-slate-900"
+      style={{ 
+        backgroundImage: 'linear-gradient(rgba(15, 23, 42, 0.85), rgba(15, 23, 42, 0.9)), url("https://images.unsplash.com/photo-1541339907198-e08756dedf3f?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80")',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center'
+      }}>
 
       {/* Background orbs */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
@@ -128,8 +132,31 @@ const Login = () => {
             </motion.button>
           </form>
 
+          {/* Quick Login for Demo */}
+          <div className="mt-6 pt-6 border-t border-white/10">
+            <p className="text-white/60 text-xs font-semibold uppercase tracking-wide text-center mb-3">Demo Quick Access</p>
+            <div className="grid grid-cols-2 gap-2">
+              <button type="button" onClick={() => { setEmail('admin@college.com'); setPassword('admin123'); }}
+                className="py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-white/80 text-xs transition">
+                Admin
+              </button>
+              <button type="button" onClick={() => { setEmail('hod_civil@college.com'); setPassword('staff123'); }}
+                className="py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-white/80 text-xs transition">
+                HOD (Civil)
+              </button>
+              <button type="button" onClick={() => { setEmail('kamran@gmail.com'); setPassword('staff123'); }}
+                className="py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-white/80 text-xs transition">
+                Faculty
+              </button>
+              <button type="button" onClick={() => { setEmail('student1@college.com'); setPassword('student123'); }}
+                className="py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-white/80 text-xs transition">
+                Student
+              </button>
+            </div>
+          </div>
+
           {/* Support info */}
-          <div className="mt-8 pt-6 border-t border-white/10 text-center">
+          <div className="mt-6 pt-4 border-t border-white/10 text-center">
             <p className="text-white/40 text-[10px] uppercase tracking-[0.2em] font-black">
               Institutional Access Only
             </p>

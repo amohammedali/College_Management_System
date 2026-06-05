@@ -111,9 +111,11 @@ const roleColorMap: Record<string, string> = {
 interface SidebarProps {
   collapsed: boolean;
   onToggle: () => void;
+  mobileOpen?: boolean;
+  setMobileOpen?: (open: boolean) => void;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggle }) => {
+const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggle, mobileOpen, setMobileOpen }) => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const nav = navByRole[user?.role || 'student'];
@@ -123,8 +125,12 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggle }) => {
     navigate('/login');
   };
 
+  const handleLinkClick = () => {
+    if (setMobileOpen) setMobileOpen(false);
+  };
+
   return (
-    <aside className={`sidebar ${collapsed ? 'collapsed' : ''}`}>
+    <aside className={`sidebar ${collapsed ? 'collapsed' : ''} ${mobileOpen ? 'mobile-open' : ''}`}>
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-5 border-b border-white/5">
         <AnimatePresence>
@@ -183,6 +189,7 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggle }) => {
               key={item.to}
               to={item.to}
               end={item.to === '/admin' || item.to === '/staff' || item.to === '/student'}
+              onClick={handleLinkClick}
               className={({ isActive }) =>
                 `sidebar-link ${isActive ? 'active' : ''}`
               }
