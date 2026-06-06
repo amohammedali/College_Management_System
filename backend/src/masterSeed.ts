@@ -252,7 +252,7 @@ const seed = async () => {
     }
 
     // ── 6. Create Students ──────────────────────────────────
-    console.log('🎓 Generating Huge Students Dataset (~1208 students)...');
+    console.log('🎓 Generating Students Dataset (~100 students)...');
     const allStudents = [];
     let studentIdCounter = 2000;
 
@@ -292,9 +292,9 @@ const seed = async () => {
     }
 
     const targetEnrollments: Record<string, number> = {
-      'Civil Engineering': 210, 'Computer Science and Engineering': 450,
-      'Mechanical Engineering': 280, 'Electrical and Electronics Engineering': 118,
-      'Electronics and Communication Engineering': 150
+      'Civil Engineering': 20, 'Computer Science and Engineering': 40,
+      'Mechanical Engineering': 20, 'Electrical and Electronics Engineering': 10,
+      'Electronics and Communication Engineering': 10
     };
 
     for (const dept of SPECIFIC_DEPTS) {
