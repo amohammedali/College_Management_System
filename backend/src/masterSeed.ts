@@ -171,7 +171,7 @@ const seed = async () => {
       
       const user = await User.create({ email, password: 'staff123', role: isTeaching ? UserRole.STAFF : UserRole.NON_TEACHING });
       const staff = await Staff.create({
-        user: user._id, staffId: `STF-EXT-${faker.string.numeric(4)}`, name: isTeaching ? `Dr. ${fName} ${lName}` : `${fName} ${lName}`,
+        user: user._id, staffId: `STF-EXT-${String(i).padStart(4, '0')}`, name: isTeaching ? `Dr. ${fName} ${lName}` : `${fName} ${lName}`,
         email, type: isTeaching ? StaffType.TEACHING : StaffType.NON_TEACHING, department: dept,
         designation: isTeaching ? faker.helpers.arrayElement(['Assistant Professor', 'Associate Professor']) : 'Administrator',
         qualification: 'M.E.', experience: faker.number.int({ min: 1, max: 20 }), phone: faker.phone.number(),
